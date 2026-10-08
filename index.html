@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Interactive Galaxy of Commitments</title>
+
+  <!-- Supabase JS Client Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --bg-color: #02040a;
+      --accent-gold: #ffd700;
+      --accent-green: #00e676;
+      --accent-red: #ff1744;
+      --text-main: #ffffff;
+      --glass-bg: rgba(10, 18, 30, 0.85);
+      --glass-border: rgba(0, 230, 118, 0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    .ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px;
+    }
+
+    .interactive-element {
+      pointer-events: auto;
+    }
+
+    .glass-panel {
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.7);
+      color: var(--text-main);
+    }
+
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+
+    .counter-badge {
+      padding: 10px 18px;
+      font-size: 0.95rem;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .counter-badge span {
+      color: var(--accent-gold);
+      font-weight: 700;
+    }
+
+    .controls-group {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: 30px;
+      border: 1px solid var(--accent-green);
+      background: rgba(0, 230, 118, 0.1);
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn:hover {
+      background: var(--accent-green);
+      color: #000;
+      box-shadow: 0 0 15px rgba(0, 230, 118, 0.5);
+    }
+
+    .btn-secondary {
+      border-color: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      box-shadow: none;
+    }
+
+    .center-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 20;
+      width: 90%;
+      max-width: 440px;
+      pointer-events: auto;
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    .center-container.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, -45%);
+    }
+
+    .form-card {
+      padding: 32px;
+      text-align: center;
+    }
+
+    .form-card h2 {
+      font-size: 1.5rem;
+      color: var(--accent-gold);
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+    }
+
+    .form-card p {
+      font-size: 0.88rem;
+      color: #a0aec0;
+      margin-bottom: 24px;
+    }
+
+    .input-group {
+      margin-bottom: 16px;
+      text-align: left;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--accent-green);
+      margin-bottom: 6px;
+    }
+
+    .input-group input, .input-group textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.3s ease;
+    }
+
+    .input-group input:focus, .input-group textarea:focus {
+      border-color: var(--accent-green);
+      box-shadow: 0 0 10px rgba(0, 230, 118, 0.3);
+    }
+
+    .form-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .submit-btn {
+      width: 100%;
+      justify-content: center;
+      padding: 14px;
+      font-size: 1rem;
+    }
+
+    .success-card {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 25;
+      padding: 30px 45px;
+      text-align: center;
+      pointer-events: auto;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.4s ease;
+    }
+
+    .success-card.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .success-card h3 {
+      color: var(--accent-gold);
+      font-size: 1.4rem;
+      margin-bottom: 8px;
+    }
+
+    .shape-bar {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 40px;
+      z-index: 15;
+      pointer-events: auto;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 95vw;
+    }
+
+    .shape-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: #a0aec0;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .shape-btn:hover {
+      color: #fff;
+    }
+
+    .shape-btn.active {
+      background: var(--accent-green);
+      color: #000;
+      font-weight: 700;
+      box-shadow: 0 0 10px rgba(0, 230, 118, 0.4);
+    }
+
+    .star-modal {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 30;
+      width: 90%;
+      max-width: 400px;
+      padding: 28px;
+      text-align: center;
+      display: none;
+      pointer-events: auto;
+    }
+
+    .star-modal.active {
+      display: block;
+    }
+
+    .modal-author {
+      color: var(--accent-gold);
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .modal-age {
+      font-size: 0.85rem;
+      color: #a0aec0;
+      margin-bottom: 16px;
+    }
+
+    .modal-pledge {
+      font-size: 1.05rem;
+      line-height: 1.5;
+      color: #fff;
+      font-style: italic;
+      margin-bottom: 20px;
+    }
+
+    .admin-modal {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 40;
+      width: 90%;
+      max-width: 420px;
+      padding: 28px;
+      display: none;
+      pointer-events: auto;
+    }
+
+    .admin-modal.active {
+      display: block;
+    }
+
+    .admin-modal h3 {
+      color: var(--accent-gold);
+      margin-bottom: 16px;
+    }
+
+    .admin-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .btn-danger {
+      border-color: #ff4d4d;
+      background: rgba(255, 77, 77, 0.1);
+      color: #ff4d4d;
+    }
+
+    .btn-danger:hover {
+      background: #ff4d4d;
+      color: #fff;
+      box-shadow: 0 0 15px rgba(255, 77, 77, 0.5);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Canvas Visual Engine -->
+  <canvas id="spaceCanvas"></canvas>
+
+  <!-- UI Overlay -->
+  <div class="ui-layer">
+    <div class="header-bar">
+      <div class="counter-badge glass-panel interactive-element">
+        🌟 Active Stars: <span id="starCounter">0</span>
+      </div>
+
+      <div class="controls-group">
+        <button class="btn btn-secondary interactive-element" id="exploreBtn" onclick="toggleFormView()">
+          🔭 View Galaxy
+        </button>
+        <button class="btn btn-secondary interactive-element" onclick="openAdminPrompt()">
+          🔒 Admin
+        </button>
+      </div>
+    </div>
+
+    <div class="shape-bar glass-panel">
+      <button class="shape-btn active" onclick="setShapePattern('flag', this)">🚩 Ismaili Flag</button>
+      <button class="shape-btn" onclick="setShapePattern('star', this)">⭐ Star</button>
+      <button class="shape-btn" onclick="setShapePattern('circle', this)">⭕ Circle</button>
+      <button class="shape-btn" onclick="setShapePattern('square', this)">🔲 Square</button>
+      <button class="shape-btn" onclick="setShapePattern('diamond', this)">🔷 Diamond</button>
+      <button class="shape-btn" onclick="setShapePattern('galaxy', this)">🌌 Free Space</button>
+    </div>
+  </div>
+
+  <!-- Form Modal -->
+  <div class="center-container" id="formContainer">
+    <div class="form-card glass-panel">
+      <h2>Pledge Your Commitment</h2>
+      <p>Submit your pledge to Mawlana Hazar Imam Shah Rahim al-Husayni (a.s.)</p>
+
+      <form id="pledgeForm" onsubmit="handleFormSubmit(event)">
+        <div class="input-group">
+          <label for="userName">Name</label>
+          <input type="text" id="userName" placeholder="Shaheer" required autocomplete="off">
+        </div>
+
+        <div class="input-group">
+          <label for="userAge">Age</label>
+          <input type="number" id="userAge" placeholder="18" min="1" max="120" required>
+        </div>
+
+        <div class="input-group">
+          <label for="userCommitment">Commitment</label>
+          <textarea id="userCommitment" rows="3" placeholder="Write your wa'da / pledge here..." required maxlength="180"></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn submit-btn">✨ Add My Star to Galaxy</button>
+          <button type="button" class="btn btn-secondary" onclick="toggleFormView()">Close & View Stars</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Success Notification -->
+  <div class="success-card glass-panel" id="successToast">
+    <h3>✨ Commitment Included</h3>
+    <p style="color: #a0aec0; font-size: 0.9rem;">Your star has joined the constellation.</p>
+  </div>
+
+  <!-- Star Inspection Modal -->
+  <div class="star-modal glass-panel" id="starModal">
+    <div class="modal-author" id="modalAuthor">Shaheer</div>
+    <div class="modal-age" id="modalAge">Age: 18</div>
+    <div class="modal-pledge" id="modalPledge">"My commitment pledge text goes here."</div>
+    <button class="btn btn-secondary" style="margin: 0 auto;" onclick="closeStarModal()">Close Inspection</button>
+  </div>
+
+  <!-- Password Protected Admin Modal -->
+  <div class="admin-modal glass-panel" id="adminModal">
+    <h3>Admin Control Panel</h3>
+    <p style="font-size: 0.85rem; color: #a0aec0; margin-bottom: 12px;">Manage live records and scale testing.</p>
+
+    <div class="admin-actions">
+      <button class="btn" onclick="populateTestStars(100)">⚡ Populate 100 Stars (Flag Test)</button>
+      <button class="btn btn-danger" onclick="clearAllStars()">🗑️ Wipe All Records</button>
+      <button class="btn btn-secondary" onclick="closeAdminModal()">Exit Admin</button>
+    </div>
+  </div>
+
+  <script>
+    /* =========================================================================
+       1. SUPABASE REALTIME CONFIGURATION
+       ========================================================================= */
+    const SUPABASE_URL = 'https://qbccyuemraguwfdvltux.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFiY2N5dWVtcmFndXdmZHZsdHV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0NzE2OTIsImV4cCI6MjEwNzA0NzY5Mn0.WD8Bblj9N3dr75y6aKQu611l2a9D-w5sHBq46eT0oQU';
+
+    let supabaseClient = null;
+
+    if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+      supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: { persistSession: false },
+        db: { schema: 'public' },
+        global: {
+          headers: { 'apikey': SUPABASE_ANON_KEY }
+        }
+      });
+    }
+
+    /* =========================================================================
+       2. CANVAS SETUP & GRAPHICS ENGINE
+       ========================================================================= */
+    const canvas = document.getElementById('spaceCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+
+    window.addEventListener('resize', () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+      recalculateAllTargetPositions();
+    });
+
+    let stars = [];
+    let currentPattern = 'flag';
+
+    // 5-Second Energy Wave Pulse
+    let waveRadius = 0;
+    let waveActive = false;
+    let waveOriginX = width / 2;
+    let waveOriginY = height / 2;
+
+    setInterval(() => {
+      waveOriginX = width / 2;
+      waveOriginY = height / 2;
+      waveRadius = 0;
+      waveActive = true;
+    }, 5000);
+
+    class StarNode {
+      constructor(id, name, age, pledgeText, targetX, targetY, colorType = 'green') {
+        this.id = id || 'star_' + Math.random().toString(36).substr(2, 9);
+        this.name = name;
+        this.age = age;
+        this.pledgeText = pledgeText;
+
+        this.x = width / 2 + (Math.random() - 0.5) * 100;
+        this.y = height / 2 + (Math.random() - 0.5) * 100;
+        this.targetX = targetX;
+        this.targetY = targetY;
+
+        this.radius = 2.5 + Math.random() * 2;
+        this.pulse = Math.random() * Math.PI * 2;
+        this.colorType = colorType; // 'green', 'red', or 'gold'
+        this.energyBoost = 0;
+      }
+
+      update() {
+        this.x += (this.targetX - this.x) * 0.04;
+        this.y += (this.targetY - this.y) * 0.04;
+        this.pulse += 0.03;
+
+        if (this.energyBoost > 0) {
+          this.energyBoost -= 0.02;
+        }
+      }
+
+      draw() {
+        const pulseRadius = this.radius + Math.sin(this.pulse) * 1.2 + (this.energyBoost * 4);
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, Math.max(0.5, pulseRadius), 0, Math.PI * 2);
+
+        let color = '#00e676'; // Default Green
+        if (this.colorType === 'red') color = '#ff1744';
+        else if (this.colorType === 'gold') color = '#ffd700';
+
+        ctx.fillStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 10 + (this.energyBoost * 20);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    /* =========================================================================
+       3. OFFICIAL ISMAILI FLAG GEOMETRY & SHAPE DISTRIBUTOR
+       ========================================================================= */
+    function computeTargetCoordinate(index, totalCount, shape) {
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const size = Math.min(width, height) * 0.35;
+      const t = (index / Math.max(1, totalCount)) * Math.PI * 2;
+
+      let x = centerX;
+      let y = centerY;
+      let colorType = 'green';
+
+      switch (shape) {
+        case 'flag':
+          // Authentic Ismaili Flag: Green Field, Red Diagonal Band (Bottom-Left to Top-Right), Golden Crown in Center
+          const flagW = size * 1.8;
+          const flagH = size * 1.1;
+
+          if (index % 10 === 0 || index % 10 === 1) {
+            // Golden Central Crown (Taj)
+            const crownAngle = ((index / totalCount) * Math.PI * 2);
+            const r = size * 0.22;
+            x = centerX + Math.sin(crownAngle) * r;
+            y = centerY - Math.cos(crownAngle) * (r * 0.8);
+            colorType = 'gold';
+          } else if (index % 3 === 0) {
+            // Red Diagonal Stripe (Bottom-Left to Top-Right)
+            const prog = ((index / totalCount) - 0.5) * 1.2;
+            x = centerX + prog * flagW;
+            y = centerY - prog * flagH;
+            colorType = 'red';
+          } else {
+            // Green Background Field Grid
+            const gridCols = Math.ceil(Math.sqrt(totalCount));
+            const col = index % gridCols;
+            const row = Math.floor(index / gridCols);
+            x = centerX - flagW/2 + (col / Math.max(1, gridCols - 1)) * flagW;
+            y = centerY - flagH/2 + (row / Math.max(1, gridCols - 1)) * flagH;
+            colorType = 'green';
+          }
+          break;
+
+        case 'star':
+          const starAngle = (index / totalCount) * Math.PI * 2;
+          const k = 5;
+          const r = size * (0.5 + 0.5 * Math.cos(k * starAngle));
+          x = centerX + r * Math.sin(starAngle);
+          y = centerY - r * Math.cos(starAngle);
+          colorType = (index % 2 === 0) ? 'gold' : 'green';
+          break;
+
+        case 'circle':
+          x = centerX + Math.cos(t) * size * 0.75;
+          y = centerY + Math.sin(t) * size * 0.75;
+          colorType = 'green';
+          break;
+
+        case 'square':
+          const sideProgress = (index / totalCount) * 4;
+          const side = Math.floor(sideProgress);
+          const pos = (sideProgress % 1) * size - (size / 2);
+
+          if (side === 0) { x = centerX + pos; y = centerY - size / 2; }
+          else if (side === 1) { x = centerX + size / 2; y = centerY + pos; }
+          else if (side === 2) { x = centerX - pos; y = centerY + size / 2; }
+          else { x = centerX - size / 2; y = centerY - pos; }
+          colorType = 'gold';
+          break;
+
+        case 'diamond':
+          const dAngle = (index / totalCount) * Math.PI * 2;
+          x = centerX + size * Math.pow(Math.cos(dAngle), 3);
+          y = centerY + size * Math.pow(Math.sin(dAngle), 3);
+          colorType = (index % 3 === 0) ? 'red' : 'green';
+          break;
+
+        case 'galaxy':
+        default:
+          const seedAngle = index * 137.5 * (Math.PI / 180);
+          const radius = Math.sqrt(index / totalCount) * size * 1.2;
+          x = centerX + radius * Math.cos(seedAngle);
+          y = centerY + radius * Math.sin(seedAngle);
+          colorType = (index % 3 === 0) ? 'gold' : ((index % 3 === 1) ? 'green' : 'red');
+          break;
+      }
+
+      return { x, y, colorType };
+    }
+
+    function recalculateAllTargetPositions() {
+      const count = stars.length;
+      stars.forEach((star, idx) => {
+        const coords = computeTargetCoordinate(idx, count, currentPattern);
+        star.targetX = coords.x;
+        star.targetY = coords.y;
+        star.colorType = coords.colorType;
+      });
+    }
+
+    function setShapePattern(shapeName, buttonEl) {
+      currentPattern = shapeName;
+      document.querySelectorAll('.shape-btn').forEach(btn => btn.classList.remove('active'));
+      if (buttonEl) buttonEl.classList.add('active');
+      recalculateAllTargetPositions();
+    }
+
+    /* =========================================================================
+       4. ANIMATION LOOP & CONNECTING BEAMS
+       ========================================================================= */
+    function animate() {
+      ctx.clearRect(0, 0, width, height);
+
+      // Draw Energy Wave Pulse
+      if (waveActive) {
+        waveRadius += 8;
+        const maxWave = Math.max(width, height) * 0.7;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(waveOriginX, waveOriginY, waveRadius, 0, Math.PI * 2);
+        const alpha = Math.max(0, 1 - waveRadius / maxWave) * 0.25;
+        ctx.strokeStyle = `rgba(0, 230, 118, ${alpha})`;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.restore();
+
+        stars.forEach(star => {
+          const dx = star.x - waveOriginX;
+          const dy = star.y - waveOriginY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (Math.abs(dist - waveRadius) < 15) {
+            star.energyBoost = 1;
+          }
+        });
+
+        if (waveRadius > maxWave) {
+          waveActive = false;
+        }
+      }
+
+      // Draw Connecting Beams
+      const maxDistance = stars.length > 80 ? 70 : 120;
+      for (let i = 0; i < stars.length; i++) {
+        for (let j = i + 1; j < stars.length; j++) {
+          const dx = stars[i].x - stars[j].x;
+          const dy = stars[i].y - stars[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < maxDistance) {
+            ctx.beginPath();
+            ctx.moveTo(stars[i].x, stars[i].y);
+            ctx.lineTo(stars[j].x, stars[j].y);
+            const alpha = (1 - dist / maxDistance) * 0.3;
+
+            let strokeColor = `rgba(0, 230, 118, ${alpha})`;
+            if (stars[i].colorType === 'red' || stars[j].colorType === 'red') strokeColor = `rgba(255, 23, 68, ${alpha})`;
+            else if (stars[i].colorType === 'gold' || stars[j].colorType === 'gold') strokeColor = `rgba(255, 215, 0, ${alpha})`;
+
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+          }
+        }
+      }
+
+      stars.forEach(star => {
+        star.update();
+        star.draw();
+      });
+
+      requestAnimationFrame(animate);
+    }
+
+    /* =========================================================================
+       5. DATA CONTROLLER & SUPABASE SYNC
+       ========================================================================= */
+    function addStarToCanvas(id, name, age, text) {
+      const targetCoords = computeTargetCoordinate(stars.length, stars.length + 1, currentPattern);
+      const newStar = new StarNode(id, name, age, text, targetCoords.x, targetCoords.y, targetCoords.colorType);
+      stars.push(newStar);
+      recalculateAllTargetPositions();
+      document.getElementById('starCounter').innerText = stars.length;
+    }
+
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('userName').value.trim() || 'Shaheer';
+      const age = document.getElementById('userAge').value.trim() || '18';
+      const text = document.getElementById('userCommitment').value.trim();
+
+      if (!text) return;
+
+      addStarToCanvas(null, name, age, text);
+
+      if (supabaseClient) {
+        await supabaseClient.from('commitments').insert([{ name, age, text }]);
+      }
+
+      document.getElementById('pledgeForm').reset();
+      document.getElementById('formContainer').classList.add('hidden');
+
+      const toast = document.getElementById('successToast');
+      toast.classList.add('active');
+      setTimeout(() => {
+        toast.classList.remove('active');
+      }, 2500);
+    }
+
+    async function initSupabaseData() {
+      if (!supabaseClient) return;
+
+      const { data } = await supabaseClient.from('commitments').select('*');
+      if (data) {
+        data.forEach(item => addStarToCanvas(item.id, item.name, item.age, item.text));
+      }
+
+      supabaseClient
+        .channel('public:commitments')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'commitments' }, payload => {
+          const item = payload.new;
+          if (!stars.some(s => s.id === item.id)) {
+            addStarToCanvas(item.id, item.name, item.age, item.text);
+          }
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'commitments' }, () => {
+          stars = [];
+          recalculateAllTargetPositions();
+          document.getElementById('starCounter').innerText = '0';
+        })
+        .subscribe();
+    }
+
+    /* =========================================================================
+       6. INTERACTION & MODALS
+       ========================================================================= */
+    function toggleFormView() {
+      const container = document.getElementById('formContainer');
+      const btn = document.getElementById('exploreBtn');
+
+      if (container.classList.contains('hidden')) {
+        container.classList.remove('hidden');
+        btn.innerText = '🔭 View Galaxy';
+      } else {
+        container.classList.add('hidden');
+        btn.innerText = '✍️ Submit Pledge';
+      }
+    }
+
+    canvas.addEventListener('click', (e) => {
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+
+      let found = null;
+      for (let star of stars) {
+        const dx = star.x - mouseX;
+        const dy = star.y - mouseY;
+        if (Math.sqrt(dx * dx + dy * dy) < 20) {
+          found = star;
+          break;
+        }
+      }
+
+      if (found) {
+        document.getElementById('modalAuthor').innerText = found.name;
+        document.getElementById('modalAge').innerText = 'Age: ' + found.age;
+        document.getElementById('modalPledge').innerText = `"${found.pledgeText}"`;
+        document.getElementById('starModal').classList.add('active');
+      }
+    });
+
+    function closeStarModal() {
+      document.getElementById('starModal').classList.remove('active');
+    }
+
+    /* =========================================================================
+       7. ADMIN PANEL & TESTING
+       ========================================================================= */
+    function openAdminPrompt() {
+      const password = prompt('Enter Admin Password:');
+      if (password === 'Stars7') {
+        document.getElementById('adminModal').classList.add('active');
+      } else if (password !== null) {
+        alert('Incorrect Password');
+      }
+    }
+
+    function closeAdminModal() {
+      document.getElementById('adminModal').classList.remove('active');
+    }
+
+    function populateTestStars(count) {
+      for (let i = 0; i < count; i++) {
+        addStarToCanvas(null, 'Participant ' + (i + 1), '18', 'Pledge of commitment and unity #' + (i + 1));
+      }
+      closeAdminModal();
+    }
+
+    async function clearAllStars() {
+      if (confirm('Are you sure you want to clear all records?')) {
+        stars = [];
+        document.getElementById('starCounter').innerText = '0';
+
+        if (supabaseClient) {
+          await supabaseClient.from('commitments').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        }
+        closeAdminModal();
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.shiftKey && e.key.toLowerCase() === 'a') {
+        openAdminPrompt();
+      }
+    });
+
+    // Start Engines
+    animate();
+    initSupabaseData();
+  </script>
+</body>
+</html>
