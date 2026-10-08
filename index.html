@@ -379,11 +379,10 @@
 
     <div class="shape-bar glass-panel">
       <button class="shape-btn active" onclick="setShapePattern('flag', this)">🚩 Ismaili Flag</button>
-      <button class="shape-btn" onclick="setShapePattern('star', this)">⭐ Star</button>
+      <button class="shape-btn" onclick="setShapePattern('star', this)">⭐ Star (Sun)</button>
       <button class="shape-btn" onclick="setShapePattern('circle', this)">⭕ Circle</button>
       <button class="shape-btn" onclick="setShapePattern('square', this)">🔲 Square</button>
       <button class="shape-btn" onclick="setShapePattern('diamond', this)">🔷 Diamond</button>
-      <button class="shape-btn" onclick="setShapePattern('galaxy', this)">🌌 Free Space</button>
     </div>
   </div>
 
@@ -434,10 +433,13 @@
   <!-- Password Protected Admin Modal -->
   <div class="admin-modal glass-panel" id="adminModal">
     <h3>Admin Control Panel</h3>
-    <p style="font-size: 0.85rem; color: #a0aec0; margin-bottom: 12px;">Manage live records and scale testing.</p>
+    <p style="font-size: 0.85rem; color: #a0aec0; margin-bottom: 12px;">Manage live records and batch generation.</p>
 
     <div class="admin-actions">
-      <button class="btn" onclick="populateTestStars(100)">⚡ Populate 100 Stars (Flag Test)</button>
+      <button class="btn" onclick="populateTestStars(10)">⚡ Add 10 Stars</button>
+      <button class="btn" onclick="populateTestStars(25)">⚡ Add 25 Stars</button>
+      <button class="btn" onclick="populateTestStars(50)">⚡ Add 50 Stars</button>
+      <button class="btn" onclick="populateTestStars(100)">⚡ Add 100 Stars</button>
       <button class="btn btn-danger" onclick="clearAllStars()">🗑️ Wipe All Records</button>
       <button class="btn btn-secondary" onclick="closeAdminModal()">Exit Admin</button>
     </div>
@@ -448,7 +450,7 @@
        1. SUPABASE REALTIME CONFIGURATION
        ========================================================================= */
     const SUPABASE_URL = 'https://qbccyuemraguwfdvltux.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFiY2N5dWVtcmFndXdmZHZsdHV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0NzE2OTIsImV4cCI6MjEwNzA0NzY5Mn0.WD8Bblj9N3dr75y6aKQu611l2a9D-w5sHBq46eT0oQU';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFiY2N5dWVtcmFnd3JmZHZsdHV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEyMTcyNzUsImV4cCI6MjA1Njc5MzI3NX0.YOUR_LEGACY_ANON_KEY_HERE'; // Replace with your legacy anon key if needed
 
     let supabaseClient = null;
 
@@ -541,7 +543,7 @@
     }
 
     /* =========================================================================
-       3. OFFICIAL ISMAILI FLAG GEOMETRY & SHAPE DISTRIBUTOR
+       3. SHAPE GEOMETRY & SUN / STAR DISTRIBUTOR
        ========================================================================= */
     function computeTargetCoordinate(index, totalCount, shape) {
       const centerX = width / 2;
@@ -555,25 +557,21 @@
 
       switch (shape) {
         case 'flag':
-          // Authentic Ismaili Flag: Green Field, Red Diagonal Band (Bottom-Left to Top-Right), Golden Crown in Center
           const flagW = size * 1.8;
           const flagH = size * 1.1;
 
           if (index % 10 === 0 || index % 10 === 1) {
-            // Golden Central Crown (Taj)
             const crownAngle = ((index / totalCount) * Math.PI * 2);
             const r = size * 0.22;
             x = centerX + Math.sin(crownAngle) * r;
             y = centerY - Math.cos(crownAngle) * (r * 0.8);
             colorType = 'gold';
           } else if (index % 3 === 0) {
-            // Red Diagonal Stripe (Bottom-Left to Top-Right)
             const prog = ((index / totalCount) - 0.5) * 1.2;
             x = centerX + prog * flagW;
             y = centerY - prog * flagH;
             colorType = 'red';
           } else {
-            // Green Background Field Grid
             const gridCols = Math.ceil(Math.sqrt(totalCount));
             const col = index % gridCols;
             const row = Math.floor(index / gridCols);
@@ -584,11 +582,19 @@
           break;
 
         case 'star':
+          // Glowing Star / Sun Geometry (Commitment Stars assemble into a Radiant Star formation)
           const starAngle = (index / totalCount) * Math.PI * 2;
-          const k = 5;
-          const r = size * (0.5 + 0.5 * Math.cos(k * starAngle));
-          x = centerX + r * Math.sin(starAngle);
-          y = centerY - r * Math.cos(starAngle);
+          const points = 5;
+          const outerRadius = size * 0.8;
+          const innerRadius = size * 0.35;
+          const step = Math.PI / points;
+          
+          const pointIdx = index % (points * 2);
+          const currentRadius = (pointIdx % 2 === 0) ? outerRadius : innerRadius;
+          const angleOffset = (index / Math.max(1, totalCount)) * Math.PI * 2 * points;
+          
+          x = centerX + Math.cos(angleOffset) * currentRadius * (0.6 + 0.4 * Math.sin(starAngle));
+          y = centerY + Math.sin(angleOffset) * currentRadius * (0.6 + 0.4 * Math.cos(starAngle));
           colorType = (index % 2 === 0) ? 'gold' : 'green';
           break;
 
@@ -617,7 +623,6 @@
           colorType = (index % 3 === 0) ? 'red' : 'green';
           break;
 
-        case 'galaxy':
         default:
           const seedAngle = index * 137.5 * (Math.PI / 180);
           const radius = Math.sqrt(index / totalCount) * size * 1.2;
@@ -831,10 +836,28 @@
       document.getElementById('adminModal').classList.remove('active');
     }
 
-    function populateTestStars(count) {
+    async function populateTestStars(count) {
+      const batch = [];
       for (let i = 0; i < count; i++) {
-        addStarToCanvas(null, 'Participant ' + (i + 1), '18', 'Pledge of commitment and unity #' + (i + 1));
+        batch.push({
+          name: 'Participant ' + (stars.length + i + 1),
+          age: 18,
+          text: 'Pledge of commitment and unity #' + (stars.length + i + 1)
+        });
       }
+
+      // Add locally right away
+      batch.forEach(item => addStarToCanvas(null, item.name, item.age, item.text));
+
+      // Save batch directly to Supabase so it syncs across devices
+      if (supabaseClient) {
+        const { error } = await supabaseClient.from('commitments').insert(batch);
+        if (error) {
+          console.error('Error inserting test stars:', error.message);
+          alert('Error saving test stars to Supabase: ' + error.message);
+        }
+      }
+
       closeAdminModal();
     }
 
